@@ -1,53 +1,85 @@
-// app/dashboard/page.tsx
-'use client'; // This page needs client-side logic (hooks, state)
+'use client';
 
-import React from 'react';
-import { useAuth } from '@/hooks/useAuth'; // Using our new hook
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
-export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+export default function AuthPage() {
+  const router = useRouter(); // Correct: Hook is called inside the component body
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Sign out function
-  const handleSignOut = async () => {
-    await signOut(auth);
-    router.push('/'); // Redirect to login page after sign out
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      if (isLogin) {
+        await signInWithEmailAndPassword(auth, email, password);
+      } else {
+        await createUserWithEmailAndPassword(auth, email, password);
+      }
+      // Redirect to the dashboard on success
+      router.push('/dashboard');
+    } catch (err: any) {
+      // Improve error message for users
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('Invalid email or password.');
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists.');
+      } else {
+        setError('An error occurred. Please try again.');
+      }
+      console.error("Authentication error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 1. Loading state
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  // 2. If not loading and no user, redirect
-  if (!user) {
-    router.push('/');
-    return null; // Return null to prevent rendering the dashboard
-  }
-
-  // 3. If user is logged in, show the dashboard
   return (
-    <div className="container mx-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Welcome, {user.email}</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="p-8 bg-gray-800 rounded-lg shadow-lg w-full max-w-sm">
+        <h1 className="text-3xl font-bold mb-2 text-center">Esplit</h1>
+        <p className="text-center text-gray-400 mb-6">AI-Powered Music Deconstruction</p>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            required
+          />
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+            required
+          />
+          {error && <p className="text-red-400 text-sm">{error}</p>}
+          <button
+            type="submit"
+            className="p-3 bg-blue-600 rounded hover:bg-blue-700 font-bold disabled:bg-gray-500 disabled:cursor-not-allowed"
+            disabled={loading}
+          >
+            {loading ? 'Processing...' : (isLogin ? 'Login' : 'Sign Up')}
+          </button>
+        </form>
         <button
-          onClick={handleSignOut}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          onClick={() => {
+            setIsLogin(!isLogin);
+            setError('');
+          }}
+          className="mt-4 text-center w-full text-sm text-gray-400 hover:text-white"
         >
-          Sign Out
+          {isLogin ? 'Need an account? Sign Up' : 'Already have an account? Login'}
         </button>
-      </div>
-
-      <div className="bg-gray-800 p-8 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-semibold mb-4">Upload Your Song</h2>
-        <p className="text-gray-400 mb-6">Upload an MP3 or WAV file to get started.</p>
-        {/* We will put the uploader component here later */}
-        <div className="border-2 border-dashed border-gray-600 rounded-lg p-12 text-center">
-          <p className="text-gray-500">File Uploader Coming Soon!</p>
-        </div>
       </div>
     </div>
   );
