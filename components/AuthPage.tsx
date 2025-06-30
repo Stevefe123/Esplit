@@ -1,13 +1,13 @@
+
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { auth } from './lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 export default function AuthPage() {
-  // Correct: router is defined ONCE, inside the component.
-  const router = useRouter(); 
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
@@ -18,7 +18,6 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-
 
     try {
       const credential = isLogin
