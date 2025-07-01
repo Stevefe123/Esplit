@@ -14,34 +14,24 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const credential = isLogin
-        ? await signInWithEmailAndPassword(auth, email, password)
-        : await createUserWithEmailAndPassword(auth, email, password);
-
-      const idToken = await credential.user.getIdToken();
-
-      // Send the token to our secure API route to set the cookie
-      await fetch('/api/login', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
-
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError('Invalid email or password.');
-      console.error("Authentication error:", err);
-    } finally {
-      setLoading(false);
+  // New handleSubmit in AuthPage.tsx
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  setError('');
+  try {
+    if (isLogin) {
+      await signInWithEmailAndPassword(auth, email, password);
+    } else {
+      await createUserWithEmailAndPassword(auth, email, password);
     }
-  };
+    router.push('/dashboard');
+  } catch (err: any) {
+    setError('Invalid email or password.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
